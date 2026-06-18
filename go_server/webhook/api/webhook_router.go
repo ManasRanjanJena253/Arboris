@@ -2,22 +2,28 @@ package api
 
 import (
 	"Arboris/go_server/config"
+	"Arboris/go_server/webhook/middleware"
+	"sync"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/cors"
+	"github.com/redis/go-redis/v9"
+	"golang.org/x/time/rate"
 )
 
-func NewHookRouter(envVar config.Config) (*chi.Mux, error) {
+func NewHookRouter(envVar config.Config, redisClient *redis.Client) (*chi.Mux, error) {
 	hookRouter := chi.NewRouter()
 
-	hookRouter.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://*", "https://*"},
-		AllowedHeaders:   []string{"Content-Type"},
-		AllowCredentials: false,
-		AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
-	}))
+	rateLimit := rate.Limit(envVar.WebHook.RateLimit)
 
-	hookRouter.Use()
+	hookRouter.Use(middleware.MaxBodySize(int64(envVar.WebHook.PayloadMaxSize)))
+	hookRouter.Use(middleware.Recovery)
+	hookRouter.Use(middleware.VerifyHMAC(envVar.WebHook.Secret))
+	hookRouter.Use(middleware.ExtractInstallID)
+	hookRouter.Use(middleware.PreventReplay(redisClient))
+	hookRouter.Use(middleware.RateLimiter(&sync.Map{}, rateLimit, envVar.WebHook.Burst))
+	hookRouter.Use(middleware.Logger)
+
+	hookRouter.Post("/webhooks/github/", WebhookHandler)
 
 	return hookRouter, nil
 }

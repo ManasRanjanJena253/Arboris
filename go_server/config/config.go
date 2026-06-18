@@ -3,6 +3,7 @@ package config
 import (
 	"log/slog"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -19,10 +20,12 @@ type Config struct {
 	WebHook struct {
 		PayloadMaxSize int
 		Burst          int
+		RateLimit      int
+		Secret         string
 	}
 }
 
-func GetConfig() Config {
+func GetConfig() (*Config, error) {
 	err := godotenv.Load()
 
 	if err != nil {
@@ -37,6 +40,15 @@ func GetConfig() Config {
 	config.PyServer.Host = os.Getenv("PYTHON_SERVER_HOST")
 	config.PyServer.Port = os.Getenv("PYTHON_SERVER_PORT")
 
-	config.WebHook.Burst = os.Getenv("")
-	return config
+	var convErr error
+
+	config.WebHook.Burst, convErr = strconv.Atoi(os.Getenv("WEBHOOK_BURST_RATE"))
+	config.WebHook.PayloadMaxSize, convErr = strconv.Atoi(os.Getenv("WEBHOOK_MAX_PAYLOAD_SIZE"))
+	config.WebHook.Secret = os.Getenv("GITHUB_WEBHOOK_SECRET")
+	config.WebHook.RateLimit, convErr = strconv.Atoi(os.Getenv("WEBHOOK_RATE_LIMIT"))
+
+	if convErr != nil {
+		return nil, convErr
+	}
+	return &config, nil
 }
