@@ -73,6 +73,7 @@ message PatternMatch {
   float similarity_score      = 3;
   int32 recurrence_count      = 4;
   repeated string example_pr_refs = 5;
+  string description          = 6;
 }
 
 message EmbeddingVector {
@@ -99,12 +100,14 @@ message ClassifyDiffResponse {
 }
 
 message DetectPatternsRequest {
-  string developer_login              = 1;
-  repeated ReviewComment recent_comments = 2;
+  ReviewComment new_comment             = 1;
+  repeated PatternMatch candidate_patterns = 2;
 }
 
 message DetectPatternsResponse {
-  repeated PatternMatch patterns = 1;
+  bool matched       = 1;
+  string pattern_id  = 2;
+  float confidence   = 3;
 }
 
 message GenerateEmbeddingRequest {
