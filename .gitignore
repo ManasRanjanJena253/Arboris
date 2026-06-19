@@ -18,6 +18,7 @@ venv/
 env/
 ENV/
 .env
+go_server/.env
 
 webhook_start.sh
 schema_notes.txt

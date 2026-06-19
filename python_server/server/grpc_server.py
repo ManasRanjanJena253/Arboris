@@ -36,7 +36,10 @@ class ReviewServiceServicer(arboris_pb2_grpc.ReviewServiceServicer):
 
     def GenerateEmbedding(self, request, context):
         return arboris_pb2.GenerateEmbeddingResponse(
-            embedding = None,
+            embedding = arboris_pb2.EmbeddingVector(
+                values = [0.0, 1.0],
+                model_name = "mock_model"
+            ),
         )
 
     def ReviewPullRequest(self, request, context):
@@ -47,7 +50,7 @@ def serve():
     HOST = os.getenv("PYTHON_SERVER_HOST")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers = 10))
 
-    arboris_pb2_grpc.add_ReviewServiceServicer_to_server(ReviewServiceServicer, server)
+    arboris_pb2_grpc.add_ReviewServiceServicer_to_server(ReviewServiceServicer(), server)
     server.add_insecure_port(f"{HOST}:{PORT}")
     print(f"Starting the server at port {HOST}:{PORT}")
 

@@ -25,7 +25,7 @@ type Config struct {
 	}
 }
 
-func GetConfig() (*Config, error) {
+func LoadEnv() (*Config, error) {
 	err := godotenv.Load()
 
 	if err != nil {
