@@ -23,6 +23,17 @@ type Config struct {
 		RateLimit      int
 		Secret         string
 	}
+	Postgres struct {
+		Port     string
+		User     string
+		DB       string
+		Password string
+	}
+	Redis struct {
+		Host     string
+		Port     string
+		Password string
+	}
 }
 
 func LoadEnv() (*Config, error) {
@@ -46,6 +57,15 @@ func LoadEnv() (*Config, error) {
 	config.WebHook.PayloadMaxSize, convErr = strconv.Atoi(os.Getenv("WEBHOOK_MAX_PAYLOAD_SIZE"))
 	config.WebHook.Secret = os.Getenv("GITHUB_WEBHOOK_SECRET")
 	config.WebHook.RateLimit, convErr = strconv.Atoi(os.Getenv("WEBHOOK_RATE_LIMIT"))
+
+	config.Postgres.User = os.Getenv("POSTGRES_USER")
+	config.Postgres.Port = os.Getenv("POSTGRES_PORT")
+	config.Postgres.Password = os.Getenv("POSTGRES_PASSWORD")
+	config.Postgres.DB = os.Getenv("POSTGRES_DB")
+
+	config.Redis.Host = os.Getenv("REDIS_HOST")
+	config.Redis.Port = os.Getenv("REDIS_PORT")
+	config.Redis.Password = os.Getenv("REDIS_PASSWORD")
 
 	if convErr != nil {
 		return nil, convErr

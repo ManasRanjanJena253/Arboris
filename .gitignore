@@ -22,3 +22,5 @@ go_server/.env
 
 webhook_start.sh
 schema_notes.txt
+
+go_server/webhook/github/arboris-ai-bot.2026-06-17.private-key.pem
