@@ -1,10 +1,6 @@
 package config
 
 import (
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
-	"errors"
 	"log/slog"
 	"os"
 	"strconv"
@@ -26,7 +22,7 @@ type Config struct {
 		Burst          int
 		RateLimit      int
 		Secret         string
-		PemSecret      *rsa.PrivateKey
+		PemSecret      []byte
 	}
 	Postgres struct {
 		Port     string
@@ -68,18 +64,8 @@ func LoadEnv() (*Config, error) {
 	if readErr != nil {
 		return nil, readErr
 	}
-	block, _ := pem.Decode(pemSecret)
 
-	if block == nil {
-		return nil, errors.New("unable to decode the pem secret")
-	}
-
-	var parseErr error
-	config.WebHook.PemSecret, parseErr = x509.ParsePKCS1PrivateKey(block.Bytes)
-
-	if parseErr != nil {
-		return nil, parseErr
-	}
+	config.WebHook.PemSecret = pemSecret
 
 	config.Postgres.User = os.Getenv("POSTGRES_USER")
 	config.Postgres.Port = os.Getenv("POSTGRES_PORT")
