@@ -6,12 +6,11 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strconv"
 )
 
 type contextKey string
 
-const installationIDKey contextKey = "installationID"
+const InstallationIDKey contextKey = "installationID"
 
 func ExtractInstallID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +31,7 @@ func ExtractInstallID(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), installationIDKey, strconv.FormatInt(payload.Installation.ID, 10))
+		ctx := context.WithValue(r.Context(), InstallationIDKey, payload.Installation.ID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

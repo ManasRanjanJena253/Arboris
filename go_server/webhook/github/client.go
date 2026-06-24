@@ -49,7 +49,7 @@ func (client *Client) DoRequest(ctx context.Context, path string, method string,
 		}
 	}(resp.Body)
 
-	if resp.StatusCode <= 200 || resp.StatusCode >= 300 {
+	if resp.StatusCode < 200 || resp.StatusCode > 300 {
 		slog.Error("Error from github api when fetching installation id", "Status Code", resp.StatusCode, "ERROR", resp.Status)
 		return nil, errors.New(fmt.Sprintf("API Side error. StatusCode : %d, Status : %s", resp.StatusCode, resp.Status))
 	}

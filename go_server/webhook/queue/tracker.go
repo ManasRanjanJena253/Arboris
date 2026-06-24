@@ -1,26 +1,26 @@
 package queue
 
 type Job struct {
-	InstallationID string
+	InstallationID int64
 	Owner          string
 	RepoName       string
 	PRNumber       int
 	CommitID       string
 }
 
-type jobQueue struct {
-	queue chan *Job
+type JobQueue struct {
+	Queue chan *Job
 }
 
-func NewJobQueue(bufferSize int) *jobQueue {
-	return &jobQueue{
-		queue: make(chan *Job, bufferSize),
+func NewJobQueue(bufferSize int) *JobQueue {
+	return &JobQueue{
+		Queue: make(chan *Job, bufferSize),
 	}
 }
 
-func (jobBuffer *jobQueue) JobEnqueue(job *Job) bool {
+func (jobBuffer *JobQueue) JobEnqueue(job *Job) bool {
 	select {
-	case jobBuffer.queue <- job:
+	case jobBuffer.Queue <- job:
 		return true
 	default:
 		return false

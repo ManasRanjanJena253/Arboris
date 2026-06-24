@@ -3,6 +3,7 @@ package api
 import (
 	"Arboris/go_server/config"
 	"Arboris/go_server/webhook/middleware"
+	"Arboris/go_server/webhook/queue"
 	"sync"
 
 	"github.com/go-chi/chi/v5"
@@ -14,16 +15,18 @@ func NewHookRouter(envVar config.Config, redisClient *redis.Client) (*chi.Mux, e
 	hookRouter := chi.NewRouter()
 
 	rateLimit := rate.Limit(envVar.WebHook.RateLimit)
+	hookHandler := WebhookHandlerStruct{queue: queue.NewJobQueue(100)}
+	cache := &sync.Map{}
 
 	hookRouter.Use(middleware.MaxBodySize(int64(envVar.WebHook.PayloadMaxSize)))
 	hookRouter.Use(middleware.Recovery)
 	hookRouter.Use(middleware.VerifyHMAC(envVar.WebHook.Secret))
 	hookRouter.Use(middleware.ExtractInstallID)
 	hookRouter.Use(middleware.PreventReplay(redisClient))
-	hookRouter.Use(middleware.RateLimiter(&sync.Map{}, rateLimit, envVar.WebHook.Burst))
+	hookRouter.Use(middleware.RateLimiter(cache, rateLimit, envVar.WebHook.Burst))
 	hookRouter.Use(middleware.Logger)
 
-	hookRouter.Post("/webhook/github", WebhookHandler)
+	hookRouter.Post("/webhook/github", hookHandler.WebhookHandler)
 
 	return hookRouter, nil
 }

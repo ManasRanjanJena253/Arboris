@@ -1,6 +1,8 @@
 package api
 
 import (
+	"Arboris/go_server/webhook/middleware"
+	"Arboris/go_server/webhook/queue"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -21,12 +23,17 @@ type PullRequestEvent struct {
 	} `json:"pull_request"`
 
 	Installation struct {
-		ID int `json:"id"`
+		ID string `json:"id"`
 	} `json:"installation"`
 
 	Repository struct {
 		ID       int    `json:"id"`
 		FullName string `json:"full_name"`
+		Owner    struct {
+			Login string `json:"login"`
+			ID    int    `json:"id"`
+			Type  string `json:"type"`
+		}
 	} `json:"repository"`
 
 	Sender struct {
@@ -34,17 +41,11 @@ type PullRequestEvent struct {
 		ID    int    `json:"id"`
 	} `json:"sender"`
 }
-
-type Job struct {
-	InstallationID int    `json:"installation_id"`
-	RepoFullName   string `json:"repo_full_name"`
-	PRNumber       int    `json:"pr_number"`
-	HeadSHA        string `json:"head_sha"`
+type WebhookHandlerStruct struct {
+	queue *queue.JobQueue
 }
 
-var jobQueue = make(chan Job, 100) // TODO: MOCK JOB QUEUE
-
-func WebhookHandler(w http.ResponseWriter, r *http.Request) {
+func (hookHandler *WebhookHandlerStruct) WebhookHandler(w http.ResponseWriter, r *http.Request) {
 	eventType := r.Header.Get("X-Github-Event")
 
 	body, err := io.ReadAll(r.Body)
@@ -61,6 +62,14 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}(r.Body)
 
+	installId, ok := r.Context().Value(middleware.InstallationIDKey).(int64)
+
+	if !ok {
+		slog.Error("The installId doesn't exist")
+		http.Error(w, "InstallID Not found", http.StatusBadRequest)
+		return
+	}
+
 	switch eventType {
 	case "ping":
 		w.WriteHeader(http.StatusOK)
@@ -70,26 +79,25 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		err := json.Unmarshal(body, &event)
 
 		if err != nil {
-			http.Error(w, "Invalide payload", http.StatusBadRequest)
+			http.Error(w, "Invalid payload", http.StatusBadRequest)
 			return
 		}
 
 		switch event.Action {
 		case "opened", "synchronize", "reopened":
-			job := Job{
-				InstallationID: event.Installation.ID,
-				RepoFullName:   event.Repository.FullName,
+			job := queue.Job{
+				Owner:          event.Repository.Owner.Login,
+				InstallationID: installId,
+				RepoName:       event.Repository.FullName,
 				PRNumber:       event.PullRequest.Number,
-				HeadSHA:        event.PullRequest.Head.SHA,
+				CommitID:       event.PullRequest.Head.SHA,
 			}
 
-			select {
-			case jobQueue <- job: // TODO : Implement jobQueue
-				w.WriteHeader(http.StatusOK)
-			default:
-				http.Error(w, "queue full", http.StatusServiceUnavailable)
+			enqueueErr := hookHandler.queue.JobEnqueue(&job)
+			if !enqueueErr {
+				http.Error(w, "Queue Full", http.StatusServiceUnavailable)
+				return
 			}
-			return
 
 		default:
 			w.WriteHeader(http.StatusOK)

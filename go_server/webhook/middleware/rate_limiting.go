@@ -11,7 +11,7 @@ func RateLimiter(limiters *sync.Map, rps rate.Limit, burst int) func(http.Handle
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-			installID, ok := ctx.Value(installationIDKey).(string)
+			installID, ok := ctx.Value(InstallationIDKey).(string)
 
 			if !ok || installID == "" {
 				http.Error(w, "Install ID not found", http.StatusInternalServerError)

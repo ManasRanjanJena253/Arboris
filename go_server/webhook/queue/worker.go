@@ -4,17 +4,18 @@ import (
 	"Arboris/go_server/webhook/github"
 	"context"
 	"log/slog"
+	"strconv"
 	"time"
 )
 
-func StartWorkers(q *jobQueue, githubClient *github.Client, count int) {
+func StartWorkers(q *JobQueue, githubClient *github.Client, count int) {
 	for i := 0; i < count; i++ {
 		go worker(q, githubClient)
 	}
 }
 
-func worker(q *jobQueue, githubClient *github.Client) {
-	for job := range q.queue {
+func worker(q *JobQueue, githubClient *github.Client) {
+	for job := range q.Queue {
 		proces(job, githubClient)
 	}
 }
@@ -23,7 +24,7 @@ func proces(job *Job, githubClient *github.Client) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
-	changedFiles, changeErr := githubClient.GetChanges(ctx, job.Owner, job.RepoName, job.PRNumber, job.InstallationID)
+	changedFiles, changeErr := githubClient.GetChanges(ctx, job.Owner, job.RepoName, job.PRNumber, strconv.FormatInt(job.InstallationID, 10))
 
 	if changeErr != nil {
 		slog.Error("Failed to fetch changes", "RepoName", job.RepoName, "PRNumber", job.PRNumber, "ERROR", changeErr)
@@ -40,7 +41,7 @@ func proces(job *Job, githubClient *github.Client) {
 		job.Owner,
 		job.RepoName,
 		job.PRNumber,
-		job.InstallationID,
+		strconv.FormatInt(job.InstallationID, 10),
 		"Arboris is analyzing this PR...",
 		job.CommitID,
 		changedFiles[0].Filename, // TODO: Use all the file lines and changes. Currently just a placeholder.
